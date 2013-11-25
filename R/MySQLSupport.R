@@ -524,10 +524,9 @@ function(con, name, value, field.types = NULL, overwrite = FALSE,
   else if(!append){
     warning(sprintf("table %s already exists -- use append=TRUE?", name))
   }
-
   fmt <- 
      paste("LOAD DATA LOCAL INFILE '%s' INTO TABLE  %s ",
-           "FIELDS TERMINATED BY '%s' ",
+           "FIELDS TERMINATED BY '%s' ESCAPED BY '\\\\' ",
            if(!is.null(quote)) "OPTIONALLY ENCLOSED BY '%s' " else "",
            "LINES TERMINATED BY '%s' ",
            "IGNORE %d LINES ", sep="")
@@ -687,8 +686,13 @@ function(value, file, batch, ...)
    from <- 1 
    to <- min(batch, N)
    conb <- file(file,open="wb")
+   ind = which(sapply(value,class) %in% c('character','factor'))
    while(from<=N){
-      write.table(value[from:to,, drop=FALSE], file = conb, append = TRUE, 
+      tmp = value[from:to,, drop=FALSE]
+      for(j in ind) {
+          tmp[,j] = encodeString(as.character(tmp[,j]),quote='"')
+      }
+      write.table(tmp, file = conb, append = TRUE, 
             quote = FALSE, sep="\t", na = .MySQL.NA.string,
             row.names=FALSE, col.names=FALSE, eol = '\n', ...)
       from <- to+1
